@@ -9,10 +9,39 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
 
-void SendData2Server(int count, int number)
+pthread_mutex_t mutex;
+pthread_mutex_t mutex_file;
+
+void* GetNewMassages(void* client_socket)
+{
+	SOCKET my_socket;
+	my_socket = (SOCKET)client_socket;
+
+	char buff[1024];
+	int ret = 0;
+
+	while (ret != SOCKET_ERROR)
+	{
+		ret = recv(my_socket, buff, sizeof(buff) - 1, 0);
+		buff[ret] = '\0';
+
+		pthread_mutex_lock(&mutex);
+		pthread_mutex_lock(&mutex_file);
+		printf("Server:%s\n", buff);
+		pthread_mutex_unlock(&mutex_file);
+		pthread_mutex_unlock(&mutex);
+		memset(buff, '\0', 1024);
+	}
+	return 0;
+}
+
+void CreateClient()
 {
 	SOCKET client;
+	char buff[1024];
 	client = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
 	if (client == INVALID_SOCKET)
 	{
@@ -21,47 +50,50 @@ void SendData2Server(int count, int number)
 	}
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
-	server.sin_port = htons(5510); //the same as in server
-	server.sin_addr.S_un.S_addr = inet_addr("127.0.0.1"); //special look-up address
+	server.sin_port = htons(5510);							//the same as in server
+	server.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");	//special look-up address
 	if (connect(client, (struct sockaddr*)&server, sizeof(server)) == SOCKET_ERROR)
 	{
 		printf("Can't connect to server\n");
 		closesocket(client);
 		return;
 	}
-	char message[1024];
-	sprintf(message, "<%d client> %s %d", number, "test", count);
-	int ret = send(client, message, strlen(message), 0);
-	if (ret == SOCKET_ERROR)
-	{
-		printf("Can't send message\n");
-		closesocket(client);
-		return;
-	}
-	printf("Sent: %s\nbytes: %d\n\n", message, ret);
-	ret = SOCKET_ERROR;
-	int i = 0;
-	while (ret == SOCKET_ERROR)
-	{
-		//полчение ответа
-		ret = recv(client, message, 1024, 0);
-		//обработка ошибок
-		if (ret == 0 || ret == WSAECONNRESET)
+	printf("Connection established\n");
+
+	pthread_mutex_init(&mutex, NULL);
+	pthread_mutex_init(&mutex_file, NULL);
+	pthread_t mythread3;		//поток для проверки нового сообщения
+	int status = pthread_create(&mythread3, NULL, GetNewMassages, (void*)client);
+
+	int ret = 0;
+	ret = recv(client, buff, sizeof(buff) - 1, 0);
+	while (ret != SOCKET_ERROR) {
+		//ret = recv(client, buff, sizeof(buff) - 1, 0);	//sizeof(buff) - 1
+		//buff[ret] = '\0';
+		//printf("Server:%s\n", buff);
+
+		printf("Client:"); 
+		gets_s(buff, 1024);
+
+		if (!strcmp(buff, "/quit"))
 		{
-			printf("Connection closed\n");
-			break;
+			printf("Exit...");
+			closesocket(client);
+			WSACleanup();
+			return 0;
 		}
-		if (ret < 0)
-		{
-			//printf("Can't resieve message\n");
-			/*closesocket(client);
-			return;*/
-			continue;
-		}
-		//вывод на экран количества полученных байт и сообщение
-		printf("Recieve: %s\n bytes: %d\n", message, ret);
+
+		send(client, buff, sizeof(buff), 0);
+		memset(buff, '\0', 1024);
 	}
+	printf("Recv error %d\n", WSAGetLastError());
 	closesocket(client);
+	WSACleanup();
+
+	pthread_mutex_destroy(&mutex_file);
+	pthread_mutex_destroy(&mutex);
+
+	return -1;
 }
 
 int main()
@@ -72,17 +104,10 @@ int main()
 		printf("Can't connect to socket lib");
 		return 1;
 	}
-	int i = 0;
-	srand(time(0));
-	rand();
-	int number = rand();
-	while (i < 1000)
-	{
-		SendData2Server(++i, number);
-		Sleep(rand() % 10);
-	}
+
+	CreateClient();
+
 	printf("Session is closed\n");
 	Sleep(1000);
 	return 0;
 }
-
