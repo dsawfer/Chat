@@ -10,8 +10,9 @@
 #include <stdio.h>
 #include <Windows.h>
 #include <string.h>
-#include "Params.h"
-#define clientHello "Hello, new member! This's our win socket chat!))\r\n"
+#include "ServerParams.h"
+
+//#define clientHello "Hello, new member! This's our win socket chat!))\r\n"
 
 #define PRINTNUSERS if (nclients)\
   printf("%d users online\n",nclients);\
@@ -20,65 +21,128 @@
 pthread_mutex_t mutex;
 pthread_mutex_t mutex_file;
 
-void* ClientStart(void* client_socket)
+void addClient(client_t *cl)
 {
-	SOCKET my_socket;
-	my_socket = (SOCKET)client_socket;
+	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(&mutex_file);
 
-	char buff[1024];
-	send(my_socket, clientHello, sizeof(clientHello), 0);
-
-	int ret = 0;
-
-	while (ret != SOCKET_ERROR) {
-		ret = recv(my_socket, buff, sizeof(buff), 0);
-		
-		//message = buff;
-		printf("received: %s\n", buff);
-		strcpy(message, buff);
-		//printf("global message1: %s\n", message);
-		//send(my_socket, buff, ret, 0);
-		memset(buff, '\0', 1024);
-		//printf("buff1: %s\n", buff);
-		
-	}
-	nclients--;
-	printf("-disconnect\n"); 
-	PRINTNUSERS
-	closesocket(my_socket);
-	return 0;
-}
-
-void* CheckMessage(void* client_socket)
-{
-	SOCKET* my_socket;
-	my_socket = (SOCKET*)client_socket;
-
-	char buff[1024] = { 0 };
-
-	while (1) {
-		if (strcmp(message, "//message")) {
-
-			printf("global message: %s\n", message);
-			strcpy(buff, message);
-
-			for (int i = 0; i < nclients; i++)
-			{
-				//printf("global message4: %s\n", message);
-				send(my_socket[i], buff, strlen(buff) * sizeof(char), 0);
-			}
-			
-			strcpy(message, "//message");
-			printf("global message after recovery: %s\n\n", message);
-			memset(buff, '\0', 1024);
+	for (int i = 0; i < 50; ++i) {
+		if (!clients[i]) {
+			clients[i] = cl;
+			break;
 		}
 	}
+
+	pthread_mutex_unlock(&mutex_file);
+	pthread_mutex_unlock(&mutex);
+}
+
+void removeClient(int uid) {
+	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(&mutex_file);
+
+	for (int i = 0; i < 50; ++i) {
+		if (clients[i]) {
+			if (clients[i]->uid == uid) {
+				clients[i] = NULL;
+				break;
+			}
+		}
+	}
+
+	pthread_mutex_unlock(&mutex_file);
+	pthread_mutex_unlock(&mutex);
+}
+
+
+void send_message(char* message, int uid) {
+	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(&mutex_file);
+
+	for (int i = 0; i < 50; i++)
+	{
+		if (clients[i]) {
+			if (clients[i]->uid != uid) {
+				send(clients[i]->sockfd, message, strlen(message), 0);
+			}
+		}
+	}
+
+	pthread_mutex_unlock(&mutex_file);
+	pthread_mutex_unlock(&mutex);
+}
+
+void* ClientStart(void* client_socket)
+{
+	char name[32];
+	client_t* cli = (client_t*)client_socket;
+	char buff[1024];
+	char message[1024];
+	int leave_flag = 0;
+
+	int ret = recv(cli->sockfd, name, sizeof(name), 0);
+	if (ret == 0 || ret == SOCKET_ERROR) {
+		printf("Didn't enter the name.\n");
+		leave_flag = 1;
+	}
+	else {
+		strcpy(cli->name, name);
+		printf("Client %s is accepted\n", cli->name);
+		nclients++;
+		sprintf(buff, "%s has joined", cli->name);
+		send_message(buff, cli->uid);
+	}
+
+	memset(buff, '\0', 1024);
+
+	while (1) {
+
+		if (leave_flag) {
+			break;
+		}
+
+		ret = recv(cli->sockfd, buff, sizeof(buff), 0);
+		if (ret > 0) {
+			if (strlen(buff) > 0) {
+				if (strcmp(buff, "/exit") == 0) {
+					sprintf(buff, "%s has left", cli->name);
+					printf("~%s\n", buff);
+					send_message(buff, cli->uid);
+					leave_flag = 1;
+				}
+				else {
+					sprintf(message, "%s: %s", cli->name, buff);
+					send_message(message, cli->uid);
+					//str_trim_lf(buff, strlen(buff));
+					printf(">%s\n", message);
+				}
+			}
+		}
+		//else {
+		//	printf("ERROR: -1\n");
+		//	leave_flag = 1;
+		//}
+
+		//printf("received: %s\n", buff);
+		//strcpy(message, buff);
+
+		memset(buff, '\0', 1024);
+		
+	}
+	closesocket(cli->sockfd);
+	removeClient(cli->uid);
+	free(cli);
+	nclients--;
+	printf("-disconnect\n"); PRINTNUSERS
+	//closesocket(my_socket);
+	pthread_detach(pthread_self());
+	return NULL;
 }
 
 int CreateServer()
 {
 	SOCKET server;
-	SOCKET client[50];
+	SOCKET client;
 	struct sockaddr_in localaddr, clientaddr;
 	int size;
 	server = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -106,16 +170,19 @@ int CreateServer()
 	
 	size = sizeof(clientaddr);
 
-	pthread_t mythread2;
-	int status2 = pthread_create(&mythread2, NULL, CheckMessage, (void*)client);
-
-	while (client[nclients] = accept(server, (struct sockaddr*)&clientaddr, &size))
+	while (client = accept(server, (struct sockaddr*)&clientaddr, &size))
 	{
-		nclients++;
-		printf("Client is accepted, total online: %d\n", nclients);
+		printf("Client join\n");
+
+		client_t* cli = (client_t*)malloc(sizeof(client_t));
+		cli->address = clientaddr;
+		cli->sockfd = client;
+		cli->uid = uid++;
+
+		addClient(cli);
+
 		pthread_t mythread;
-		
-		int status = pthread_create(&mythread, NULL, ClientStart, (void*)client[nclients - 1]);
+		int status = pthread_create(&mythread, NULL, ClientStart, (void*)cli);
 		
 		//pthread_detach(mythread);
 	}

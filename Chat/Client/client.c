@@ -11,9 +11,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include "ClientParams.h"
 
 pthread_mutex_t mutex;
 pthread_mutex_t mutex_file;
+
+void str_overwrite_stdout() {
+	printf("%s", "");
+	fflush(stdout);
+}
 
 void* GetNewMassages(void* client_socket)
 {
@@ -30,7 +36,10 @@ void* GetNewMassages(void* client_socket)
 
 		pthread_mutex_lock(&mutex);
 		pthread_mutex_lock(&mutex_file);
-		printf("Server:%s\n", buff);
+
+		printf("%s\n", buff);
+		str_overwrite_stdout();
+
 		pthread_mutex_unlock(&mutex_file);
 		pthread_mutex_unlock(&mutex);
 		memset(buff, '\0', 1024);
@@ -38,10 +47,36 @@ void* GetNewMassages(void* client_socket)
 	return 0;
 }
 
+void* SendNewMassages(void* client_socket)
+{
+	SOCKET my_socket;
+	my_socket = (SOCKET)client_socket;
+
+	//char buff[1024];
+	char message[1024];
+	int ret = 0;
+
+	while (ret != SOCKET_ERROR) {
+		//printf("Client:");
+		gets_s(message, 1024);
+		//sprintf(buff, "%s: %s\n", name, message);
+		send(my_socket, message, sizeof(message), 0);
+
+		if (!strcmp(message, "/exit"))
+		{
+			break;
+		}
+
+		//memset(buff, '\0', 1024);
+		memset(message, '\0', 1024);
+	}
+	flag = 1;
+}
+
 void CreateClient()
 {
 	SOCKET client;
-	char buff[1024];
+	//char buff[1024];
 	client = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
 	if (client == INVALID_SOCKET)
 	{
@@ -60,40 +95,43 @@ void CreateClient()
 	}
 	printf("Connection established\n");
 
+	gets_s(name, 30);
+	if (!strlen(name) || strlen(name) > 30) {
+		printf("Incorrect name, connection close\n");
+		return;
+	}
+	send(client, name, sizeof(name), 0);
+
 	pthread_mutex_init(&mutex, NULL);
 	pthread_mutex_init(&mutex_file, NULL);
-	pthread_t mythread3;		//поток для проверки нового сообщения
-	int status = pthread_create(&mythread3, NULL, GetNewMassages, (void*)client);
+	pthread_t getMessages;		//поток для проверки нового сообщения
+	int getStatus = pthread_create(&getMessages, NULL, GetNewMassages, (void*)client);
 
-	int ret = 0;
-	ret = recv(client, buff, sizeof(buff) - 1, 0);
-	while (ret != SOCKET_ERROR) {
-		//ret = recv(client, buff, sizeof(buff) - 1, 0);	//sizeof(buff) - 1
-		//buff[ret] = '\0';
-		//printf("Server:%s\n", buff);
+	//int ret = 0;
+	//ret = recv(client, buff, sizeof(buff) - 1, 0);
+	//printf("%s\n", buff);
 
-		printf("Client:"); 
-		gets_s(buff, 1024);
+	pthread_t sendMessages;		//поток для отправки нового сообщения
+	int Sendstatus = pthread_create(&sendMessages, NULL, SendNewMassages, (void*)client);
+	//
 
-		if (!strcmp(buff, "/quit"))
-		{
-			printf("Exit...");
+	while (1)
+	{
+		if (flag == 1) {
+			pthread_detach(getMessages);
+			pthread_detach(sendMessages);
+
 			closesocket(client);
 			WSACleanup();
-			return 0;
+
+			pthread_mutex_destroy(&mutex_file);
+			pthread_mutex_destroy(&mutex);
+			break;
 		}
-
-		send(client, buff, sizeof(buff), 0);
-		memset(buff, '\0', 1024);
 	}
-	printf("Recv error %d\n", WSAGetLastError());
-	closesocket(client);
-	WSACleanup();
 
-	pthread_mutex_destroy(&mutex_file);
-	pthread_mutex_destroy(&mutex);
-
-	return -1;
+	
+	//return;
 }
 
 int main()
