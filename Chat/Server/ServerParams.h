@@ -18,5 +18,6 @@ load();		//char** logs, char** pass
 int findLogin(char* name);
 void addUser(name, pass);
 int findPassword(res, pass);
-
+int findFriend(name, buf);
+void addFriend(friendName, userName);
 save();
