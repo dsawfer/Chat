@@ -3,8 +3,7 @@
 #define MAX_CLIENTS 50
 
 //char message[1024] = "//message";
-int nclients = 0;
-int uid = 10;
+
 
 typedef struct {
 	struct sockaddr_in address;
@@ -14,3 +13,10 @@ typedef struct {
 } client_t;
 
 client_t* clients[MAX_CLIENTS];
+
+load();		//char** logs, char** pass
+int findLogin(char* name);
+void addUser(name, pass);
+int findPassword(res, pass);
+
+save();

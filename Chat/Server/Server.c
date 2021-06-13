@@ -21,6 +21,12 @@
 pthread_mutex_t mutex;
 pthread_mutex_t mutex_file;
 
+char logins[100][30];
+char passwords[100][30];
+int nclients = 0;
+int uid = 10;
+server_flag = 0;
+
 void addClient(client_t *cl)
 {
 	pthread_mutex_lock(&mutex);
@@ -74,25 +80,63 @@ void send_message(char* message, int uid) {
 
 void* ClientStart(void* client_socket)
 {
-	char name[32];
+	char name[30];
+	char pass[30];
 	client_t* cli = (client_t*)client_socket;
 	char buff[1024];
 	char message[1024];
-	int leave_flag = 0;
+	int leave_flag = 0, res = 0;
 
-	int ret = recv(cli->sockfd, name, sizeof(name), 0);
+	int ret = recv(cli->sockfd, name, sizeof(name), 0);		// (1) get login
+
 	if (ret == 0 || ret == SOCKET_ERROR) {
 		printf("Didn't enter the name.\n");
 		leave_flag = 1;
 	}
 	else {
 		strcpy(cli->name, name);
+		res = findLogin(name);
+
+		if (res == -1) {
+			printf("Creation of a new user: %s\n", name);
+			sprintf(buff, "New user, please, create the password");
+			send(cli->sockfd, buff, sizeof(buff), 0);	// (2) sending answer
+			memset(buff, '\0', 1024);
+
+			ret = recv(cli->sockfd, pass, sizeof(pass), 0);		// (3) getting password
+			addUser(name, pass);
+
+			sprintf(buff, "success");
+			send(cli->sockfd, buff, sizeof(buff), 0);		// (4) sending answer
+		}
+		else {
+			printf("Login of an existing user: %s\n", name);
+			sprintf(buff, "Enter the password");
+			send(cli->sockfd, buff, sizeof(buff), 0);	// (2) sending answer
+			memset(buff, '\0', 1024);
+
+			printf("Password is %s\n", passwords[res]);
+
+			ret = recv(cli->sockfd, pass, sizeof(pass), 0);		// (3) getting password
+
+			if (findPassword(res, pass) == -1) {
+				printf("Wrong password\n");
+				sprintf(buff, "error");
+				send(cli->sockfd, buff, sizeof(buff), 0);		// (4) sending answer
+				leave_flag = 1;
+			}
+			else {
+				printf("Correct password\n");
+				sprintf(buff, "success");
+				send(cli->sockfd, buff, sizeof(buff), 0);		// (4) sending answer
+			}
+		}
+		memset(buff, '\0', 1024);
 		printf("Client %s is accepted\n", cli->name);
-		nclients++;
 		sprintf(buff, "%s has joined", cli->name);
 		send_message(buff, cli->uid);
 	}
-
+	//
 	memset(buff, '\0', 1024);
 
 	while (1) {
@@ -110,24 +154,21 @@ void* ClientStart(void* client_socket)
 					send_message(buff, cli->uid);
 					leave_flag = 1;
 				}
+				else if (strcmp(buff, "/close_server") == 0) {
+					sprintf(buff, "Server was stoped by %s", cli->name);
+					send_message(buff, cli->uid);
+					server_flag = 1;
+				}
 				else {
 					sprintf(message, "%s: %s", cli->name, buff);
 					send_message(message, cli->uid);
 					//str_trim_lf(buff, strlen(buff));
 					printf(">%s\n", message);
+					//addHistory();
 				}
 			}
 		}
-		//else {
-		//	printf("ERROR: -1\n");
-		//	leave_flag = 1;
-		//}
-
-		//printf("received: %s\n", buff);
-		//strcpy(message, buff);
-
 		memset(buff, '\0', 1024);
-		
 	}
 	closesocket(cli->sockfd);
 	removeClient(cli->uid);
@@ -170,9 +211,12 @@ int CreateServer()
 	
 	size = sizeof(clientaddr);
 
-	while (client = accept(server, (struct sockaddr*)&clientaddr, &size))
+	load();		//load data base
+
+	while ((client = accept(server, (struct sockaddr*)&clientaddr, &size)) && server_flag == 0)
 	{
 		printf("Client join\n");
+		nclients++;
 
 		client_t* cli = (client_t*)malloc(sizeof(client_t));
 		cli->address = clientaddr;
@@ -186,6 +230,8 @@ int CreateServer()
 		
 		//pthread_detach(mythread);
 	}
+
+	save();		//save data base
 
 	pthread_mutex_destroy(&mutex_file);
 	pthread_mutex_destroy(&mutex);

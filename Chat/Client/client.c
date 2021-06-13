@@ -16,6 +16,42 @@
 pthread_mutex_t mutex;
 pthread_mutex_t mutex_file;
 
+int authorization(SOCKET client)
+{
+	char login[30] = { 0 };
+	char password[30] = { 0 };
+	char buff[1024] = { 0 };
+
+	printf("Login: ");
+
+	gets_s(login, 30);
+	if (!strlen(login) || strlen(login) > 30) {
+		printf("Incorrect name, connection close\n");
+		return -1;
+	}
+	send(client, login, sizeof(login), 0);		// (1) sending login
+	int ret = recv(client, buff, sizeof(buff), 0);	// (2) getting answer
+	printf("%s: ", buff);
+	memset(buff, '\0', 1024);
+
+	gets_s(password, 30);
+	if (!strlen(password) || strlen(password) > 30) {
+		printf("Incorrect password, connection close\n");
+		return -1;
+	}
+	send(client, password, sizeof(password), 0);	// (3) sending password
+
+	ret = recv(client, buff, sizeof(buff), 0);	// (4) getting answer
+	if (strcmp(buff, "error") == 0) {
+		printf("Login denied\n");
+		return -1;
+	}
+	else {
+		printf("Login successful\n");
+		return 0;
+	}
+}
+
 void str_overwrite_stdout() {
 	printf("%s", "");
 	fflush(stdout);
@@ -28,7 +64,7 @@ void* GetNewMassages(void* client_socket)
 
 	char buff[1024];
 	int ret = 0;
-
+	//printf("1\n");
 	while (ret != SOCKET_ERROR)
 	{
 		ret = recv(my_socket, buff, sizeof(buff) - 1, 0);
@@ -36,7 +72,6 @@ void* GetNewMassages(void* client_socket)
 
 		pthread_mutex_lock(&mutex);
 		pthread_mutex_lock(&mutex_file);
-
 		printf("%s\n", buff);
 		str_overwrite_stdout();
 
@@ -52,22 +87,17 @@ void* SendNewMassages(void* client_socket)
 	SOCKET my_socket;
 	my_socket = (SOCKET)client_socket;
 
-	//char buff[1024];
 	char message[1024];
 	int ret = 0;
 
 	while (ret != SOCKET_ERROR) {
-		//printf("Client:");
 		gets_s(message, 1024);
-		//sprintf(buff, "%s: %s\n", name, message);
 		send(my_socket, message, sizeof(message), 0);
 
 		if (!strcmp(message, "/exit"))
 		{
 			break;
 		}
-
-		//memset(buff, '\0', 1024);
 		memset(message, '\0', 1024);
 	}
 	flag = 1;
@@ -76,7 +106,6 @@ void* SendNewMassages(void* client_socket)
 void CreateClient()
 {
 	SOCKET client;
-	//char buff[1024];
 	client = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
 	if (client == INVALID_SOCKET)
 	{
@@ -94,24 +123,15 @@ void CreateClient()
 		return;
 	}
 	printf("Connection established\n");
-
-	gets_s(name, 30);
-	if (!strlen(name) || strlen(name) > 30) {
-		printf("Incorrect name, connection close\n");
-		return;
-	}
-	send(client, name, sizeof(name), 0);
+	
+	if (authorization(client) == -1) return;		//authorization
 
 	pthread_mutex_init(&mutex, NULL);
 	pthread_mutex_init(&mutex_file, NULL);
-	pthread_t getMessages;		//поток для проверки нового сообщения
+	pthread_t getMessages;		//stream for checking new messages
 	int getStatus = pthread_create(&getMessages, NULL, GetNewMassages, (void*)client);
 
-	//int ret = 0;
-	//ret = recv(client, buff, sizeof(buff) - 1, 0);
-	//printf("%s\n", buff);
-
-	pthread_t sendMessages;		//поток для отправки нового сообщения
+	pthread_t sendMessages;		//stream for sending messages
 	int Sendstatus = pthread_create(&sendMessages, NULL, SendNewMassages, (void*)client);
 	//
 
@@ -129,8 +149,6 @@ void CreateClient()
 			break;
 		}
 	}
-
-	
 	//return;
 }
 
