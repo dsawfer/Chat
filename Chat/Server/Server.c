@@ -157,35 +157,26 @@ void* ClientStart(void* client_socket)
 				}
 				else if (buff[0] == '/' && buff[1] == 'a' && buff[2] == 'd' && buff[3] == 'd') {
 					int f = findFriend(cli->name, buff);
-					if (f == 0)
+					if (f == 0)                            //f=0 -> friend already exist
 					{
 						printf("~%s wants to add a friend who has already been added\n", cli->name);
-
-						memset(buff, '\0', 1024);
 						sprintf(buff, "This user is already your friend");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-
-						memset(buff, '\0', 1024);
 					}
-					else if (f == -1)
+					else if (f == -1)					   //f=-1 -> user doesn't exist
 					{
 						printf("~%s wants to add a non-existent user\n", cli->name);
-						memset(buff, '\0', 1024);
 						sprintf(buff, "This user does not exist");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-						memset(buff, '\0', 1024);
 					}
-					else
+					else                                   //f=1 -> you can add friend, user exist
 					{
 						addFriend(buff, cli->name);
-						memset(buff, '\0', 1024);
 						sprintf(buff, "%s added a new friend", cli->name);
 						printf("~%s\n", buff);
 						send_message(buff, cli->uid);
-						memset(buff, '\0', 1024);
 						sprintf(buff, "New friend added");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-						memset(buff, '\0', 1024);
 					}
 				}
 				else if (strcmp(buff, "/close_server") == 0) {
