@@ -1,4 +1,4 @@
-// server.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
+п»ї// server.cpp : ГќГІГ®ГІ ГґГ Г©Г« Г±Г®Г¤ГҐГ°Г¦ГЁГІ ГґГіГ­ГЄГ¶ГЁГѕ "main". Г‡Г¤ГҐГ±Гј Г­Г Г·ГЁГ­Г ГҐГІГ±Гї ГЁ Г§Г ГЄГ Г­Г·ГЁГўГ ГҐГІГ±Гї ГўГ»ГЇГ®Г«Г­ГҐГ­ГЁГҐ ГЇГ°Г®ГЈГ°Г Г¬Г¬Г».
 //
 
 //#include "pch.h"
@@ -23,11 +23,12 @@ pthread_mutex_t mutex_file;
 
 char logins[100][30];
 char passwords[100][30];
+char friends[100][100];
 int nclients = 0;
 int uid = 10;
 server_flag = 0;
 
-void addClient(client_t *cl)
+void addClient(client_t* cl)
 {
 	pthread_mutex_lock(&mutex);
 	pthread_mutex_lock(&mutex_file);
@@ -154,6 +155,39 @@ void* ClientStart(void* client_socket)
 					send_message(buff, cli->uid);
 					leave_flag = 1;
 				}
+				else if (buff[0] == '/' && buff[1] == 'a' && buff[2] == 'd' && buff[3] == 'd') {
+					int f = findFriend(cli->name, buff);
+					if (f == 0)
+					{
+						printf("~%s wants to add a friend who has already been added\n", cli->name);
+
+						memset(buff, '\0', 1024);
+						sprintf(buff, "This user is already your friend");
+						send(cli->sockfd, buff, sizeof(buff), 0);
+
+						memset(buff, '\0', 1024);
+					}
+					else if (f == -1)
+					{
+						printf("~%s wants to add a non-existent user\n", cli->name);
+						memset(buff, '\0', 1024);
+						sprintf(buff, "This user does not exist");
+						send(cli->sockfd, buff, sizeof(buff), 0);
+						memset(buff, '\0', 1024);
+					}
+					else
+					{
+						addFriend(buff, cli->name);
+						memset(buff, '\0', 1024);
+						sprintf(buff, "%s added a new friend", cli->name);
+						printf("~%s\n", buff);
+						send_message(buff, cli->uid);
+						memset(buff, '\0', 1024);
+						sprintf(buff, "New friend added");
+						send(cli->sockfd, buff, sizeof(buff), 0);
+						memset(buff, '\0', 1024);
+					}
+				}
 				else if (strcmp(buff, "/close_server") == 0) {
 					sprintf(buff, "Server was stoped by %s", cli->name);
 					send_message(buff, cli->uid);
@@ -175,8 +209,8 @@ void* ClientStart(void* client_socket)
 	free(cli);
 	nclients--;
 	printf("-disconnect\n"); PRINTNUSERS
-	//closesocket(my_socket);
-	pthread_detach(pthread_self());
+		//closesocket(my_socket);
+		pthread_detach(pthread_self());
 	return NULL;
 }
 
@@ -195,7 +229,7 @@ int CreateServer()
 	localaddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	localaddr.sin_family = AF_INET;
 	localaddr.sin_port = htons(5510);		//port number is for example, must be more than 1024
-	if (bind(server, (struct sockaddr*)&localaddr, sizeof(localaddr)) == SOCKET_ERROR) //bind - запускает сервер (сокет)
+	if (bind(server, (struct sockaddr*)&localaddr, sizeof(localaddr)) == SOCKET_ERROR) //bind - Г§Г ГЇГіГ±ГЄГ ГҐГІ Г±ГҐГ°ГўГҐГ° (Г±Г®ГЄГҐГІ)
 	{
 		printf("Can't start server\n");
 		return 2;
@@ -204,11 +238,11 @@ int CreateServer()
 	{
 		printf("Server is started\n");
 	}
-	listen(server, 50);		//50 клиентов в очереди могут стоять, заставляет сервер слушать
+	listen(server, 50);		//50 ГЄГ«ГЁГҐГ­ГІГ®Гў Гў Г®Г·ГҐГ°ГҐГ¤ГЁ Г¬Г®ГЈГіГІ Г±ГІГ®ГїГІГј, Г§Г Г±ГІГ ГўГ«ГїГҐГІ Г±ГҐГ°ГўГҐГ° Г±Г«ГіГёГ ГІГј
 	pthread_mutex_init(&mutex, NULL);
 	pthread_mutex_init(&mutex_file, NULL);
 	printf("Waiting for connection...\n");
-	
+
 	size = sizeof(clientaddr);
 
 	load();		//load data base
@@ -227,7 +261,7 @@ int CreateServer()
 
 		pthread_t mythread;
 		int status = pthread_create(&mythread, NULL, ClientStart, (void*)cli);
-		
+
 		//pthread_detach(mythread);
 	}
 
