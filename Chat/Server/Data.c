@@ -25,7 +25,7 @@ void addUser(char name[], char pass[])
 	}
 	strcpy(logins[step], name);
 	strcpy(passwords[step], pass);
-	strcpy(friends[step], "\n");
+	strcpy(friends[step], " ");
 }
 
 int findLogin(char* name)
@@ -61,7 +61,7 @@ int findFriend(char* name, char* buf)
 		else
 		{
 			if (strcmp(temp_fr_name, fr_name) == 0)
-				return 0;
+				return 0; //this user is alredy your friend
 			else
 			{
 				for (t = 0; t < width; t++)
@@ -75,9 +75,9 @@ int findFriend(char* name, char* buf)
 	strcpy(temp_fr_name, fr_name);
 	if (f > -1)
 	{
-		return 1;
+		return 1;      //you can add friend
 	}
-	return -1;
+	return -1;         //user doesn't exist
 }
 
 void addFriend(char* buf, char* userName)
