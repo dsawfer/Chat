@@ -187,7 +187,7 @@ void delFriend(char* buff, char* userName)
 	int t = 0;
 	for (int i = 0; i < width_fr; i++)
 	{
-		if (friends[n][i] != ' ')
+		if (friends[n][i] != ' ' && friends[n][i] != '\n' && friends[n][i] != '\0')
 		{
 			temp_fr_name[t] = friends[n][i];
 			t++;
@@ -203,7 +203,7 @@ void delFriend(char* buff, char* userName)
 				int c = 0;
 				for (i = 0; friends[n][i] != '\0'; i++)
 				{
-					if (friends[n][i] != ' ' && friends[n][i] != '\n')
+					if (friends[n][i] != ' ')
 					{
 						c++;
 					}
@@ -331,7 +331,7 @@ save()
 {
 	FILE* l_logins = fopen("Data/logins.txt", "r+");
 	FILE* l_passwords = fopen("Data/passwords.txt", "r+");
-	FILE* l_friends = fopen("Data/friends.txt", "r+");
+	FILE* l_friends = fopen("Data/friends.txt", "wt");
 	FILE* l_chat_members = fopen("Data/chat_members.txt", "r+");
 	FILE* l_chat_names = fopen("Data/chat_names.txt", "r+");
 	FILE* l_history = fopen("Data/history.txt", "r+");
