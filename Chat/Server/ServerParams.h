@@ -20,4 +20,5 @@ void addUser(name, pass);
 int findPassword(res, pass);
 int findFriend(name, buf);
 void addFriend(friendName, userName);
+process_command(char* buff, char* title, char chat_members[][30]);
 save();

@@ -24,6 +24,9 @@ pthread_mutex_t mutex_file;
 char logins[100][30];
 char passwords[100][30];
 char friends[100][100];
+char chat_members[100][100];
+char chat_names[100][30];
+
 int nclients = 0;
 int uid = 10;
 server_flag = 0;
@@ -79,6 +82,49 @@ void send_message(char* message, int uid) {
 	pthread_mutex_unlock(&mutex);
 }
 
+void send_message_in_close_chat(char* message, int* membersID) {
+	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(&mutex_file);
+	int step = 0;
+
+	while (membersID[step] != 0)
+	{
+		for (int i = 0; i < 50; i++)
+		{
+			if (clients[i]) {
+				if (clients[i]->uid == membersID[step]) {
+					send(clients[i]->sockfd, message, strlen(message), 0);
+				}
+			}
+		}
+		step++;
+	}
+
+	pthread_mutex_unlock(&mutex_file);
+	pthread_mutex_unlock(&mutex);
+}
+
+getCommand(char* buff, char* command)
+{
+	int step = 0;
+	while (buff[step] != ' ' && buff[step] != '\0') {
+		command[step] = buff[step];
+		step++;
+	}
+	if (buff[step] == '\0') return;
+	else {
+		int point = 0;
+		while (step >= 0) {
+			while (buff[point]) {
+				buff[point] = buff[point + 1];
+				point++;
+			}
+			step--;
+			point = 0;
+		}
+	}
+}
+
 void* ClientStart(void* client_socket)
 {
 	char name[30];
@@ -86,6 +132,7 @@ void* ClientStart(void* client_socket)
 	client_t* cli = (client_t*)client_socket;
 	char buff[1024];
 	char message[1024];
+	char command[20];
 	int leave_flag = 0, res = 0;
 
 	int ret = recv(cli->sockfd, name, sizeof(name), 0);		// (1) get login
@@ -137,72 +184,101 @@ void* ClientStart(void* client_socket)
 		sprintf(buff, "%s has joined", cli->name);
 		send_message(buff, cli->uid);
 	}
-	//
+
 	memset(buff, '\0', 1024);
+	memset(command, '\0', 20);
 
 	while (1) {
 
 		if (leave_flag) {
 			break;
 		}
-
 		ret = recv(cli->sockfd, buff, sizeof(buff), 0);
 		if (ret > 0) {
-			if (strlen(buff) > 0) {
-				if (strcmp(buff, "/exit") == 0) {
+			if (buff[0] == '/') {
+				getCommand(buff, command);
+				printf("|%s| - |%s|\n", buff, command);
+				if (strcmp(command, "/exit") == 0) {
 					sprintf(buff, "%s has left", cli->name);
 					printf("~%s\n", buff);
 					send_message(buff, cli->uid);
 					leave_flag = 1;
 				}
-				else if (buff[0] == '/' && buff[1] == 'a' && buff[2] == 'd' && buff[3] == 'd') {
+				else if (strcmp(command, "/add") == 0) {
 					int f = findFriend(cli->name, buff);
-					if (f == 0)
+					//printf("%d\n", f);
+					switch (f)
 					{
+					case 0:
 						printf("~%s wants to add a friend who has already been added\n", cli->name);
-
-						memset(buff, '\0', 1024);
 						sprintf(buff, "This user is already your friend");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-
-						memset(buff, '\0', 1024);
-					}
-					else if (f == -1)
-					{
+						break;
+					case -1:
 						printf("~%s wants to add a non-existent user\n", cli->name);
-						memset(buff, '\0', 1024);
 						sprintf(buff, "This user does not exist");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-						memset(buff, '\0', 1024);
-					}
-					else
-					{
+						break;
+					case 1:
+						//printf("add friend\n");
 						addFriend(buff, cli->name);
-						memset(buff, '\0', 1024);
 						sprintf(buff, "%s added a new friend", cli->name);
 						printf("~%s\n", buff);
 						send_message(buff, cli->uid);
 						memset(buff, '\0', 1024);
 						sprintf(buff, "New friend added");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-						memset(buff, '\0', 1024);
+						break;
+					default:
+						break;
 					}
 				}
-				else if (strcmp(buff, "/close_server") == 0) {
+				else if (strcmp(command, "/close_server") == 0) {
 					sprintf(buff, "Server was stoped by %s", cli->name);
 					send_message(buff, cli->uid);
 					server_flag = 1;
 				}
-				else {
-					sprintf(message, "%s: %s", cli->name, buff);
-					send_message(message, cli->uid);
-					//str_trim_lf(buff, strlen(buff));
-					printf(">%s\n", message);
-					//addHistory();
+				/*else if (strcmp(command, "/create") == 0) {
+					char title[10];
+					char chat_members_args[10][30];
+					process_command(buff, title, chat_members_args);
+
+					printf("Creation of close chat %s with ", title);
+					int step = 0;
+					while (chat_members_args[step][0]) {
+						printf("%s ", chat_members_args[step++]);
+					}
+					printf("\n");
+
+					if (check_members(chat_members_args) == 0) {
+						if (findChat(title) == -1) {
+							addChat(title, chat_members_args);
+						}
+						else printf("Chat already exist\n");
+					}
+					else printf("Few of members isn's in friend list\n");
 				}
+				else if (strcmp(buff, "/send") == 0) {
+					char title[10];
+					char message[1024];
+					process_command(buff, title, message);
+					int ch = findChat(title);
+
+					int membersID[10];
+					findMembersId(chat_members[ch], membersID);
+					send_message_in_close_chat(message, membersID);
+				}*/
+			}
+			else {
+				sprintf(message, "%s: %s", cli->name, buff);
+				send_message(message, cli->uid);
+				//str_trim_lf(buff, strlen(buff));
+				printf(">%s\n", message);
+				//addHistory();
 			}
 		}
 		memset(buff, '\0', 1024);
+		memset(command, '\0', 20);
 	}
 	closesocket(cli->sockfd);
 	removeClient(cli->uid);
