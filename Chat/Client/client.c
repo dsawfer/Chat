@@ -114,7 +114,7 @@ void CreateClient()
 	}
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
-	server.sin_port = htons(5510);							//the same as in server
+	server.sin_port = htons(11000);							//the same as in server
 	server.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");	//special look-up address
 	if (connect(client, (struct sockaddr*)&server, sizeof(server)) == SOCKET_ERROR)
 	{
