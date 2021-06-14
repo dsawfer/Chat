@@ -20,6 +20,7 @@ void addUser(name, pass);
 int findPassword(res, pass);
 int findFriend(char* name, char* buff);
 void addFriend(char* buff, char* userName);
+void addToHistory(char* message);
 
 process_command(char* buff, char* title, char chat_members_args[][30]);
 void delFriend(char* buff, char* userName);

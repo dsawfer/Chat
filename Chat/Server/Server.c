@@ -23,6 +23,7 @@ char passwords[100][30];
 char friends[100][100];
 char chat_members[100][100];
 char chat_names[100][30];
+char history[100][100];
 
 int nclients = 0;
 int uid = 10;
@@ -129,6 +130,7 @@ int getCommand(char* buff, char* command)
 	if (strcmp(command, "/close_server") == 0) return 4;
 	if (strcmp(command, "/delete_friend") == 0) return 5;
 	if (strcmp(command, "/send") == 0) return 6;
+	if (strcmp(command, "/history") == 0) return 7;
 	return 0;
 }
 
@@ -167,7 +169,7 @@ process_message(char* buff, char* title, char* chat_message)
 {
 	memset(title, '\0', 10);
 	memset(chat_message, '\0', 1024);
-	
+
 	int step = 0, point = 0;
 	while (buff[step] != ' ' && buff[step] != '\0') {
 		title[step] = buff[step];
@@ -285,7 +287,6 @@ void* ClientStart(void* client_socket)
 					memset(buff, '\0', 1024);
 					sprintf(buff, "New friend added");
 					send(cli->sockfd, buff, sizeof(buff), 0);
-
 					break;
 				}
 				break;
@@ -385,12 +386,25 @@ void* ClientStart(void* client_socket)
 				}
 			}
 			break;
+			case 7:
+			{
+				int i = 0;
+				printf("~%s wants to see history\nHistory:\n", cli->name);
+				while (history[i][0])
+				{
+					printf("%s\n", history[i]);
+					send(cli->sockfd, history[i], sizeof(history[i]), 0);
+					i++;
+				}
+			}
+			break;
 			}
 		}
 		else {
 			sprintf(message, "%s: %s", cli->name, buff);
 			send_message(message, cli->uid);
 			printf(">%s\n", message);
+			addToHistory(message);
 		}
 
 		memset(buff, '\0', 1024);
@@ -401,7 +415,7 @@ void* ClientStart(void* client_socket)
 	free(cli);
 	nclients--;
 	printf("-disconnect\n"); PRINTNUSERS
-	closesocket(cli->sockfd);
+		closesocket(cli->sockfd);
 	pthread_detach(pthread_self());
 	return NULL;
 }
@@ -479,7 +493,3 @@ int main()
 	}
 	return CreateServer();
 }
-
-
-
-

@@ -12,6 +12,7 @@ extern char passwords[100][30];
 extern char friends[100][100];
 extern char chat_members[100][100];
 extern char chat_names[100][30];
+extern char history[100][100];
 
 int findMemberID(char member[])
 {
@@ -223,6 +224,14 @@ void delFriend(char* buff, char* userName)
 	}
 }
 
+void addToHistory(char* message)
+{
+	int i = 0;
+	while (history[i][0] != '\0')
+		i++;
+	strcpy(history[i], message);
+}
+
 load()
 {
 	FILE* l_logins = fopen("Data/logins.txt", "r+");
@@ -230,6 +239,7 @@ load()
 	FILE* l_friends = fopen("Data/friends.txt", "r+");
 	FILE* l_chat_members = fopen("Data/chat_members.txt", "r+");
 	FILE* l_chat_names = fopen("Data/chat_names.txt", "r+");
+	FILE* l_history = fopen("Data/history.txt", "r+");
 
 	for (int i = 0; i < length; i++)
 	{
@@ -243,6 +253,7 @@ load()
 		{
 			friends[i][j] = '\0';
 			chat_members[i][j] = '\0';
+			history[i][j] = '\0';
 		}
 	}
 
@@ -295,11 +306,25 @@ load()
 	memset(chat_members[step - 1], '\0', 100);
 	memset(chat_names[step - 1], '\0', 30);
 
+	step = 0;
+	while (!feof(l_history))
+	{
+		fgets(tempStr, 100, l_history);
+		len = (strlen(tempStr) - 1);
+		if (tempStr[len] == '\n')
+			tempStr[len] = '\0';
+		strcpy(history[step], tempStr);
+		step++;
+	}
+
+	memset(history[step - 1], '\0', 100);
+
 	fclose(l_logins);
 	fclose(l_passwords);
 	fclose(l_friends);
 	fclose(l_chat_members);
 	fclose(l_chat_names);
+	fclose(l_history);
 }
 
 save()
@@ -309,6 +334,7 @@ save()
 	FILE* l_friends = fopen("Data/friends.txt", "r+");
 	FILE* l_chat_members = fopen("Data/chat_members.txt", "r+");
 	FILE* l_chat_names = fopen("Data/chat_names.txt", "r+");
+	FILE* l_history = fopen("Data/history.txt", "r+");
 
 	int step = 0;
 	while (logins[step][0])
@@ -327,9 +353,17 @@ save()
 		step++;
 	}
 
+	step = 0;
+	while (history[step][0])
+	{
+		fprintf(l_history, "%s\n", history[step]);
+		step++;
+	}
+
 	fclose(l_logins);
 	fclose(l_passwords);
 	fclose(l_friends);
 	fclose(l_chat_members);
 	fclose(l_chat_names);
+	fclose(l_history);
 }
