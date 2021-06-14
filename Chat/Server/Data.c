@@ -10,6 +10,46 @@
 extern char logins[100][30];
 extern char passwords[100][30];
 extern char friends[100][100];
+extern char chat_members[100][100];
+extern char chat_names[100][30];
+
+int check_members(char name[], char chat_members_args[][30])
+{
+	int step = 0;
+	while (chat_members_args[step][0]) {
+		if (findFriend(name, chat_members_args[step]) != 0)
+			return 1;
+		step++;
+	}
+	return 0;
+}
+
+int findChat(char title[])
+{
+	int step = 0;
+	while (chat_names[step][0])
+	{
+		printf("%d %s %s\n", step, title, chat_names[step]);
+		if (strcmp(title, chat_names[step]) == 0) return 1;
+		step++;
+	}
+	return 0;
+}
+
+void addChat(char title[], char chat_members_args[][30])
+{
+	int step = 0, point = 0;
+	while (chat_names[step][0]) {
+		step++;
+	}
+	strcpy(chat_names[step], title);
+
+	while (chat_members_args[point][0]) {
+		strcat(chat_members[step], chat_members_args[point]);
+		strcat(chat_members[step], " ");
+		point++;
+	}
+}
 
 int findPassword(int step, char pass[])
 {
@@ -25,7 +65,7 @@ void addUser(char name[], char pass[])
 	}
 	strcpy(logins[step], name);
 	strcpy(passwords[step], pass);
-	strcpy(friends[step], " ");
+	friends[step][0] = '0';
 }
 
 int findLogin(char* name)
@@ -41,15 +81,19 @@ int findLogin(char* name)
 
 int findFriend(char* name, char* buff)
 {
-	int n = 0;
+	int n = 0, step = 0;
 	n = findLogin(name);
 	char temp_fr_name[30] = { 0 };
 	int t = 0;
-	for (int i = 0; i < width_fr; i++)
+	while (friends[n][step])
 	{
-		if (friends[n][i] != ' ')
+		if (friends[n][step] == '0') {
+			friends[n][step] = '\0';
+			break;
+		}
+		if (friends[n][step] != ' ')
 		{
-			temp_fr_name[t] = friends[n][i];
+			temp_fr_name[t] = friends[n][step];
 			t++;
 		}
 		else
@@ -63,7 +107,12 @@ int findFriend(char* name, char* buff)
 				t = 0;
 			}
 		}
+		step++;
 	}
+
+	if (strcmp(temp_fr_name, buff) == 0)
+		return 0; //this user is alredy your friend
+
 	int f = 0;
 	f = findLogin(buff);
 	if (f > -1)
@@ -96,16 +145,22 @@ void delFriend(char* buff, char* userName)
 		{
 			if (strcmp(temp_fr_name, buff) == 0)
 			{
-				i--;
-				int k = 0;
-				while (friends[n][i] != ' ')
+				i -= t;
+				t++;
+				for (i; i < width_fr - t; i++)
+					friends[n][i] = friends[n][i + t];
+				int c = 0;
+				for (i = 0; friends[n][i] != '\0'; i++)
 				{
-					i--;
-					k++;
+					if (friends[n][i] != ' ' && friends[n][i] != '\n')
+					{
+						c++;
+					}
 				}
-				i++;
-				for (i; i < width_fr - k; i++)
-					friends[n][i] = friends[n][i + k];
+				if (c == 0)
+				{
+					strcpy(friends[n], "0");
+				}
 				i = width_fr;
 			}
 			else
@@ -123,6 +178,8 @@ load()
 	FILE* l_logins = fopen("Data/logins.txt", "r+");
 	FILE* l_passwords = fopen("Data/passwords.txt", "r+");
 	FILE* l_friends = fopen("Data/friends.txt", "r+");
+	FILE* l_chat_members = fopen("Data/chat_members.txt", "r+");
+	FILE* l_chat_names = fopen("Data/chat_names.txt", "r+");
 
 	for (int i = 0; i < length; i++)
 	{
@@ -130,16 +187,18 @@ load()
 		{
 			logins[i][j] = '\0';
 			passwords[i][j] = '\0';
+			chat_names[i][j] = '\0';
 		}
 		for (int j = 0; j < width_fr; j++)
 		{
 			friends[i][j] = '\0';
+			chat_members[i][j] = '\0';
 		}
 	}
 
 	int step = 0, len = 0;
 	char tempStr[30] = { 0 };
-	char tempStr_fr[100] = { 0 };
+	char tempStr_long[100] = { 0 };
 	while (!feof(l_logins))
 	{
 		fgets(tempStr, 30, l_logins);
@@ -154,17 +213,43 @@ load()
 			tempStr[len] = '\0';
 		strcpy(passwords[step], tempStr);
 
-		fgets(tempStr_fr, 100, l_friends);
-		len = (strlen(tempStr_fr) - 1);
-		if (tempStr_fr[len] == '\n')
-			tempStr_fr[len] = '\0';
-		strcpy(friends[step], tempStr_fr);
+		fgets(tempStr_long, 100, l_friends);
+		len = (strlen(tempStr_long) - 1);
+		if (tempStr_long[len] == '\n')
+			tempStr_long[len] = '\0';
+		strcpy(friends[step], tempStr_long);
 		step++;
 	}
+
+	memset(logins[step - 1], '\0', 30);
+	memset(passwords[step - 1], '\0', 30);
+	memset(friends[step - 1], '\0', 100);
+
+	step = 0;
+	while (!feof(l_chat_names))
+	{
+		fgets(tempStr_long, 100, l_chat_members);
+		len = (strlen(tempStr_long) - 1);
+		if (tempStr_long[len] == '\n')
+			tempStr_long[len] = '\0';
+		strcpy(chat_members[step], tempStr_long);
+
+		fgets(tempStr, 30, l_chat_names);
+		len = (strlen(tempStr) - 1);
+		if (tempStr[len] == '\n')
+			tempStr[len] = '\0';
+		strcpy(chat_names[step], tempStr);
+		step++;
+	}
+
+	memset(chat_members[step - 1], '\0', 100);
+	memset(chat_names[step - 1], '\0', 30);
 
 	fclose(l_logins);
 	fclose(l_passwords);
 	fclose(l_friends);
+	fclose(l_chat_members);
+	fclose(l_chat_names);
 }
 
 save()
@@ -172,6 +257,8 @@ save()
 	FILE* l_logins = fopen("Data/logins.txt", "r+");
 	FILE* l_passwords = fopen("Data/passwords.txt", "r+");
 	FILE* l_friends = fopen("Data/friends.txt", "r+");
+	FILE* l_chat_members = fopen("Data/chat_members.txt", "r+");
+	FILE* l_chat_names = fopen("Data/chat_names.txt", "r+");
 
 	int step = 0;
 	while (logins[step][0])
@@ -182,7 +269,17 @@ save()
 		step++;
 	}
 
+	step = 0;
+	while (chat_names[step][0])
+	{
+		fprintf(l_chat_members, "%s\n", chat_members[step]);
+		fprintf(l_chat_names, "%s\n", chat_names[step]);
+		step++;
+	}
+
 	fclose(l_logins);
 	fclose(l_passwords);
 	fclose(l_friends);
+	fclose(l_chat_members);
+	fclose(l_chat_names);
 }
