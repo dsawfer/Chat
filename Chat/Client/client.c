@@ -123,7 +123,7 @@ void CreateClient()
 		return;
 	}
 	printf("Connection established\n");
-	
+
 	if (authorization(client) == -1) return;		//authorization
 
 	pthread_mutex_init(&mutex, NULL);

@@ -127,6 +127,7 @@ int getCommand(char* buff, char* command)
 	if (strcmp(command, "/create") == 0) return 2;
 	if (strcmp(command, "/exit") == 0) return 3;
 	if (strcmp(command, "/close_server") == 0) return 4;
+	if (strcmp(command, "/delete_friend") == 0) return 5;
 	if (strcmp(command, "/send") == 0) return 6;
 	return 0;
 }
@@ -147,6 +148,7 @@ process_command(char* buff, char* title, char chat_members_args[][30])
 		title[step] = buff[step];
 		step++;
 	}
+
 	step++;
 	while (buff[step]) {
 		while (buff[step] != ' ') {
@@ -258,34 +260,34 @@ void* ClientStart(void* client_socket)
 
 			//printf("|%s| |%s| |%d|\n", buff, command, comm);
 
-			switch (comm) 
+			switch (comm)
 			{
 			case 1:
 				switch (findFriend(cli->name, buff))
-					{
-					case 0:
-						printf("~%s wants to add a friend who has already been added\n", cli->name);
-						memset(buff, '\0', 1024);
-						sprintf(buff, "This user is already your friend");
-						send(cli->sockfd, buff, sizeof(buff), 0);
-						break;
-					case -1:
-						printf("~%s wants to add a non-existent user\n", cli->name);
-						memset(buff, '\0', 1024);
-						sprintf(buff, "This user does not exist");
-						send(cli->sockfd, buff, sizeof(buff), 0);
-						break;
-					case 1:
-						addFriend(buff, cli->name);
-						sprintf(buff, "%s added a new friend", cli->name);
-						printf("~%s\n", buff);
-						send_message(buff, cli->uid);
-						memset(buff, '\0', 1024);
-						sprintf(buff, "New friend added");
-						send(cli->sockfd, buff, sizeof(buff), 0);
+				{
+				case 0:
+					printf("~%s wants to add a friend who has already been added\n", cli->name);
+					memset(buff, '\0', 1024);
+					sprintf(buff, "This user is already your friend");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case -1:
+					printf("~%s wants to add a non-existent user\n", cli->name);
+					memset(buff, '\0', 1024);
+					sprintf(buff, "This user does not exist");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case 1:
+					addFriend(buff, cli->name);
+					sprintf(buff, "%s added a new friend", cli->name);
+					printf("~%s\n", buff);
+					send_message(buff, cli->uid);
+					memset(buff, '\0', 1024);
+					sprintf(buff, "New friend added");
+					send(cli->sockfd, buff, sizeof(buff), 0);
 
-						break;
-					}
+					break;
+				}
 				break;
 			case 2:
 			{
@@ -320,7 +322,7 @@ void* ClientStart(void* client_socket)
 					send(cli->sockfd, buff, sizeof(buff), 0);
 				}
 			}
-				break;
+			break;
 			case 3:
 				sprintf(buff, "%s has left", cli->name);
 				printf("~%s\n", buff);
@@ -331,6 +333,30 @@ void* ClientStart(void* client_socket)
 				sprintf(buff, "Server was stoped by %s", cli->name);
 				send_message(buff, cli->uid);
 				server_flag = 1;
+				break;
+			case 5:
+				switch (findFriend(cli->name, buff))
+				{
+				case 1:
+					printf("~%s wants to delete a user who is not his friend\n", cli->name);
+					sprintf(buff, "This user is not your friend, you cannot delete him");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case -1:
+					printf("~%s wants to delete a non-existent user\n", cli->name);
+					sprintf(buff, "This user does not exist, you cannot delete him");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case 0:
+					delFriend(buff, cli->name);
+					sprintf(buff, "%s deleted friend", cli->name);
+					printf("~%s\n", buff);
+					send_message(buff, cli->uid);
+					memset(buff, '\0', 1024);
+					sprintf(buff, "You deleted a friend");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				}
 				break;
 			case 6:
 			{
@@ -358,7 +384,7 @@ void* ClientStart(void* client_socket)
 					send(cli->sockfd, buff, sizeof(buff), 0);
 				}
 			}
-				break;
+			break;
 			}
 		}
 		else {
@@ -453,3 +479,7 @@ int main()
 	}
 	return CreateServer();
 }
+
+
+
+

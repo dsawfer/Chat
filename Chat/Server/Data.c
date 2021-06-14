@@ -178,6 +178,51 @@ void addFriend(char* buff, char* userName)
 
 }
 
+void delFriend(char* buff, char* userName)
+{
+	int n = 0;
+	n = findLogin(userName);
+	char temp_fr_name[30] = { 0 };
+	int t = 0;
+	for (int i = 0; i < width_fr; i++)
+	{
+		if (friends[n][i] != ' ')
+		{
+			temp_fr_name[t] = friends[n][i];
+			t++;
+		}
+		else
+		{
+			if (strcmp(temp_fr_name, buff) == 0)
+			{
+				i -= t;
+				t++;
+				for (i; i < width_fr - t; i++)
+					friends[n][i] = friends[n][i + t];
+				int c = 0;
+				for (i = 0; friends[n][i] != '\0'; i++)
+				{
+					if (friends[n][i] != ' ' && friends[n][i] != '\n')
+					{
+						c++;
+					}
+				}
+				if (c == 0)
+				{
+					strcpy(friends[n], "0");
+				}
+				i = width_fr;
+			}
+			else
+			{
+				for (t = 0; t < width; t++)
+					temp_fr_name[t] = '\0';
+				t = 0;
+			}
+		}
+	}
+}
+
 load()
 {
 	FILE* l_logins = fopen("Data/logins.txt", "r+");
