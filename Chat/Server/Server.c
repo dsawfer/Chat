@@ -1,7 +1,4 @@
-﻿// server.cpp : Ýòîò ôàéë ñîäåðæèò ôóíêöèþ "main". Çäåñü íà÷èíàåòñÿ è çàêàí÷èâàåòñÿ âûïîëíåíèå ïðîãðàììû.
-//
-
-//#include "pch.h"
+﻿//#include "pch.h"
 #define HAVE_STRUCT_TIMESPEC
 #define _CRT_SECURE_NO_WARNINGS
 #include <pthread.h>
@@ -104,15 +101,15 @@ void send_message_in_close_chat(char* message, int* membersID) {
 	pthread_mutex_unlock(&mutex);
 }
 
-getCommand(char* buff, char* command)
+int getCommand(char* buff, char* command)
 {
 	int step = 0;
 	while (buff[step] != ' ' && buff[step] != '\0') {
 		command[step] = buff[step];
 		step++;
 	}
-	if (buff[step] == '\0') return;
-	else {
+	if (buff[step] != '\0')
+	{
 		int point = 0;
 		while (step >= 0) {
 			while (buff[point]) {
@@ -122,6 +119,46 @@ getCommand(char* buff, char* command)
 			step--;
 			point = 0;
 		}
+	}
+
+	//printf("GetCommand: %s", command);
+
+	if (strcmp(command, "/add") == 0) return 1;
+	if (strcmp(command, "/create") == 0) return 2;
+	if (strcmp(command, "/exit") == 0) return 3;
+	if (strcmp(command, "/close_server") == 0) return 4;
+	if (strcmp(command, "/delete_friend") == 0) return 5;
+	return 0;
+}
+
+process_command(char* buff, char* title, char chat_members_args[][30])
+{
+	memset(title, 10, '\0');
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 0; j < 30; j++)
+		{
+			chat_members_args[i][j] = '\0';
+		}
+	}
+
+	int step = 0, point = 0, count = 0;
+	while (buff[step] != ' ' && buff[step] != '\0') {
+		title[step] = buff[step];
+		step++;
+	}
+
+	step++;
+	while (buff[step]) {
+		while (buff[step] != ' ') {
+			if (buff[step] == '\0') break;
+			chat_members_args[count][point] = buff[step];
+			step++;
+			point++;
+		}
+		count++;
+		point = 0;
+		step++;
 	}
 }
 
@@ -152,8 +189,9 @@ void* ClientStart(void* client_socket)
 			memset(buff, '\0', 1024);
 
 			ret = recv(cli->sockfd, pass, sizeof(pass), 0);		// (3) getting password
+			printf("1\n");
 			addUser(name, pass);
-
+			printf("2\n");
 			sprintf(buff, "success");
 			send(cli->sockfd, buff, sizeof(buff), 0);		// (4) sending answer
 		}
@@ -193,90 +231,119 @@ void* ClientStart(void* client_socket)
 		if (leave_flag) {
 			break;
 		}
+
 		ret = recv(cli->sockfd, buff, sizeof(buff), 0);
-		if (ret > 0) {
-			if (buff[0] == '/') {
-				getCommand(buff, command);
-				printf("|%s| - |%s|\n", buff, command);
-				if (strcmp(command, "/exit") == 0) {
-					sprintf(buff, "%s has left", cli->name);
+		if (strlen(buff) <= 0) continue;
+		if (buff[0] == '/') {
+			int comm = getCommand(buff, command);
+
+			//printf("|%s| |%s| |%d|\n", buff, command, comm);
+
+			switch (comm)
+			{
+			case 1:
+				switch (findFriend(cli->name, buff))
+				{
+				case 0:
+					printf("~%s wants to add a friend who has already been added\n", cli->name);
+					memset(buff, '\0', 1024);
+					sprintf(buff, "This user is already your friend");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case -1:
+					printf("~%s wants to add a non-existent user\n", cli->name);
+					memset(buff, '\0', 1024);
+					sprintf(buff, "This user does not exist");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case 1:
+					addFriend(buff, cli->name);
+					sprintf(buff, "%s added a new friend", cli->name);
 					printf("~%s\n", buff);
 					send_message(buff, cli->uid);
-					leave_flag = 1;
+					memset(buff, '\0', 1024);
+					sprintf(buff, "New friend added");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+
+					break;
 				}
-				else if (strcmp(command, "/add") == 0) {
-					int f = findFriend(cli->name, buff);
-					//printf("%d\n", f);
-					switch (f)
-					{
-					case 0:
-						printf("~%s wants to add a friend who has already been added\n", cli->name);
-						sprintf(buff, "This user is already your friend");
+				break;
+			case 2:
+			{
+				char title[10];
+				char chat_members_args[10][30];
+				process_command(buff, title, chat_members_args);
+
+				printf("Creation of close chat %s with ", title);
+				int step = 0;
+				while (chat_members_args[step][0]) {
+					printf("%s ", chat_members_args[step++]);
+				}
+
+				printf("\n");
+				memset(buff, '\0', 1024);
+				if (check_members(cli->name, chat_members_args) == 0) {
+					if (findChat(title) == 0) {
+						addChat(title, chat_members_args);
+						printf("Chat was created\n");
+						sprintf(buff, "Chat was created");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-						break;
-					case -1:
-						printf("~%s wants to add a non-existent user\n", cli->name);
-						sprintf(buff, "This user does not exist");
+					}
+					else {
+						printf("Chat already exist\n");
+						sprintf(buff, "Chat already exist");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-						break;
-					case 1:
-						//printf("add friend\n");
-						addFriend(buff, cli->name);
-						sprintf(buff, "%s added a new friend", cli->name);
-						printf("~%s\n", buff);
-						send_message(buff, cli->uid);
-						memset(buff, '\0', 1024);
-						sprintf(buff, "New friend added");
-						send(cli->sockfd, buff, sizeof(buff), 0);
-						break;
-					default:
-						break;
 					}
 				}
-				else if (strcmp(command, "/close_server") == 0) {
-					sprintf(buff, "Server was stoped by %s", cli->name);
-					send_message(buff, cli->uid);
-					server_flag = 1;
+				else {
+					printf("Few of members isn's in friend list\n");
+					sprintf(buff, "Few of members isn's in friend list");
+					send(cli->sockfd, buff, sizeof(buff), 0);
 				}
-				/*else if (strcmp(command, "/create") == 0) {
-					char title[10];
-					char chat_members_args[10][30];
-					process_command(buff, title, chat_members_args);
-
-					printf("Creation of close chat %s with ", title);
-					int step = 0;
-					while (chat_members_args[step][0]) {
-						printf("%s ", chat_members_args[step++]);
-					}
-					printf("\n");
-
-					if (check_members(chat_members_args) == 0) {
-						if (findChat(title) == -1) {
-							addChat(title, chat_members_args);
-						}
-						else printf("Chat already exist\n");
-					}
-					else printf("Few of members isn's in friend list\n");
-				}
-				else if (strcmp(buff, "/send") == 0) {
-					char title[10];
-					char message[1024];
-					process_command(buff, title, message);
-					int ch = findChat(title);
-
-					int membersID[10];
-					findMembersId(chat_members[ch], membersID);
-					send_message_in_close_chat(message, membersID);
-				}*/
 			}
-			else {
-				sprintf(message, "%s: %s", cli->name, buff);
-				send_message(message, cli->uid);
-				//str_trim_lf(buff, strlen(buff));
-				printf(">%s\n", message);
-				//addHistory();
+			break;
+			case 3:
+				sprintf(buff, "%s has left", cli->name);
+				printf("~%s\n", buff);
+				send_message(buff, cli->uid);
+				leave_flag = 1;
+				break;
+			case 4:
+				sprintf(buff, "Server was stoped by %s", cli->name);
+				send_message(buff, cli->uid);
+				server_flag = 1;
+				break;
+			case 5:
+				switch (findFriend(cli->name, buff))
+				{
+				case 1:
+					printf("~%s wants to delete a user who is not his friend\n", cli->name);
+					sprintf(buff, "This user is not your friend, you cannot delete him");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case -1:
+					printf("~%s wants to delete a non-existent user\n", cli->name);
+					sprintf(buff, "This user does not exist, you cannot delete him");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				case 0:
+					delFriend(buff, cli->name);
+					sprintf(buff, "%s deleted friend", cli->name);
+					printf("~%s\n", buff);
+					send_message(buff, cli->uid);
+					memset(buff, '\0', 1024);
+					sprintf(buff, "You deleted a friend");
+					send(cli->sockfd, buff, sizeof(buff), 0);
+					break;
+				}
 			}
 		}
+		else {
+			sprintf(message, "%s: %s", cli->name, buff);
+			send_message(message, cli->uid);
+			printf(">%s\n", message);
+		}
+
 		memset(buff, '\0', 1024);
 		memset(command, '\0', 20);
 	}
@@ -285,8 +352,8 @@ void* ClientStart(void* client_socket)
 	free(cli);
 	nclients--;
 	printf("-disconnect\n"); PRINTNUSERS
-		//closesocket(my_socket);
-		pthread_detach(pthread_self());
+		closesocket(cli->sockfd);
+	pthread_detach(pthread_self());
 	return NULL;
 }
 
@@ -304,7 +371,7 @@ int CreateServer()
 	}
 	localaddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	localaddr.sin_family = AF_INET;
-	localaddr.sin_port = htons(5510);		//port number is for example, must be more than 1024
+	localaddr.sin_port = htons(11000);		//port number is for example, must be more than 1024 (5510)
 	if (bind(server, (struct sockaddr*)&localaddr, sizeof(localaddr)) == SOCKET_ERROR) //bind - çàïóñêàåò ñåðâåð (ñîêåò)
 	{
 		printf("Can't start server\n");

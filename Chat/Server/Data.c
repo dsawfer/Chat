@@ -13,36 +13,41 @@ extern char friends[100][100];
 extern char chat_members[100][100];
 extern char chat_names[100][30];
 
-process_command(char* buff, char* title, char chat_members_args[][30])
+int check_members(char name[], char chat_members_args[][30])
 {
-	//printf("2\n");
-	memset(title, 10, '\0');
-	for (int i = 0; i < 10; i++)
+	int step = 0;
+	while (chat_members_args[step][0]) {
+		if (findFriend(name, chat_members_args[step]) != 0)
+			return 1;
+		step++;
+	}
+	return 0;
+}
+
+int findChat(char title[])
+{
+	int step = 0;
+	while (chat_names[step][0])
 	{
-		for (int j = 0; j < 30; j++)
-		{
-			chat_members_args[i][j] = '\0';
-		}
-	}
-	//printf("3\n");
-	int step = 0, point = 0, count = 0;
-	while (buff[step] != ' ' && buff[step] != '\0') {
-		//printf("3.5: %s\n", title);
-		title[step] = buff[step];
+		printf("%d %s %s\n", step, title, chat_names[step]);
+		if (strcmp(title, chat_names[step]) == 0) return 1;
 		step++;
 	}
-	//printf("4: %s\n", title);
-	step++;
-	while (buff[step]) {
-		while (buff[step] != ' ') {
-			if (buff[step] == '\0') break;
-			chat_members_args[count][point] = buff[step];
-			step++;
-			point++;
-		}
-		count++;
-		point = 0;
+	return 0;
+}
+
+void addChat(char title[], char chat_members_args[][30])
+{
+	int step = 0, point = 0;
+	while (chat_names[step][0]) {
 		step++;
+	}
+	strcpy(chat_names[step], title);
+
+	while (chat_members_args[point][0]) {
+		strcat(chat_members[step], chat_members_args[point]);
+		strcat(chat_members[step], " ");
+		point++;
 	}
 }
 
@@ -60,7 +65,7 @@ void addUser(char name[], char pass[])
 	}
 	strcpy(logins[step], name);
 	strcpy(passwords[step], pass);
-	strcpy(friends[step], "\n");
+	friends[step][0] = '0';
 }
 
 int findLogin(char* name)
@@ -76,15 +81,19 @@ int findLogin(char* name)
 
 int findFriend(char* name, char* buff)
 {
-	int n = 0;
+	int n = 0, step = 0;
 	n = findLogin(name);
 	char temp_fr_name[30] = { 0 };
 	int t = 0;
-	for (int i = 0; i < width_fr; i++)
+	while (friends[n][step])
 	{
-		if (friends[n][i] != ' ')
+		if (friends[n][step] == '0') {
+			friends[n][step] = '\0';
+			break;
+		}
+		if (friends[n][step] != ' ')
 		{
-			temp_fr_name[t] = friends[n][i];
+			temp_fr_name[t] = friends[n][step];
 			t++;
 		}
 		else
@@ -98,17 +107,16 @@ int findFriend(char* name, char* buff)
 				t = 0;
 			}
 		}
+		step++;
 	}
+
+	if (strcmp(temp_fr_name, buff) == 0)
+		return 0; //this user is alredy your friend
+
 	int f = 0;
 	f = findLogin(buff);
-
-	printf("\n%s - %s\n\n", temp_fr_name, buff);
-
-	strcpy(temp_fr_name, buff);
 	if (f > -1)
-	{
 		return 1;      //you can add friend
-	}
 	return -1;         //user doesn't exist
 }
 
@@ -118,6 +126,51 @@ void addFriend(char* buff, char* userName)
 	n = findLogin(userName);
 	strcat(friends[n], buff);
 	strcat(friends[n], " ");
+}
+
+void delFriend(char* buff, char* userName)
+{
+	int n = 0;
+	n = findLogin(userName);
+	char temp_fr_name[30] = { 0 };
+	int t = 0;
+	for (int i = 0; i < width_fr; i++)
+	{
+		if (friends[n][i] != ' ')
+		{
+			temp_fr_name[t] = friends[n][i];
+			t++;
+		}
+		else
+		{
+			if (strcmp(temp_fr_name, buff) == 0)
+			{
+				i -= t;
+				t++;
+				for (i; i < width_fr - t; i++)
+					friends[n][i] = friends[n][i + t];
+				int c = 0;
+				for (i = 0; friends[n][i] != '\0'; i++)
+				{
+					if (friends[n][i] != ' ' && friends[n][i] != '\n')
+					{
+						c++;
+					}
+				}
+				if (c == 0)
+				{
+					strcpy(friends[n], "0");
+				}
+				i = width_fr;
+			}
+			else
+			{
+				for (t = 0; t < width; t++)
+					temp_fr_name[t] = '\0';
+				t = 0;
+			}
+		}
+	}
 }
 
 load()
