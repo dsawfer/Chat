@@ -24,6 +24,7 @@ char friends[100][100];
 char chat_members[100][100];
 char chat_names[100][30];
 char history[100][100];
+char closeHistory[100][100];
 
 int nclients = 0;
 int uid = 10;
@@ -131,6 +132,7 @@ int getCommand(char* buff, char* command)
 	if (strcmp(command, "/delete_friend") == 0) return 5;
 	if (strcmp(command, "/send") == 0) return 6;
 	if (strcmp(command, "/history") == 0) return 7;
+	if (strcmp(command, "/history_of_chat") == 0) return 8;
 	return 0;
 }
 
@@ -366,7 +368,7 @@ void* ClientStart(void* client_socket)
 				process_message(buff, title, chat_message);
 				//printf("%s / %s\n", title, chat_message);
 				int chat = findChat(title);
-				if (chat>=0) {
+				if (chat >= 0) {
 					int membersID[10] = { 0 };
 					if (findMembers(chat, membersID, cli->name)) {
 						printf("Member error\n");
@@ -378,6 +380,7 @@ void* ClientStart(void* client_socket)
 					sprintf(message, "%s>%s: %s", title, cli->name, chat_message);
 					printf("%s\n", message);
 					send_message_in_close_chat(message, membersID, cli->uid);
+					addToCloseHistory(message);
 				}
 				else {
 					printf("Chat does not exist\n");
@@ -395,6 +398,44 @@ void* ClientStart(void* client_socket)
 					printf("%s\n", history[i]);
 					send(cli->sockfd, history[i], sizeof(history[i]), 0);
 					i++;
+				}
+			}
+			case 8:
+			{
+				char title[10];
+				char chat_message[1024];
+				process_message(buff, title, chat_message);
+				printf("~%s wants to see history of close chat %s\n", cli->name, title);
+				int chat = findChat(title);
+				if (chat >= 0) {
+					int membersID[10] = { 0 };
+					if (findMembers(chat, membersID, cli->name)) {
+						printf("Member error\n");
+						memset(buff, '\0', 1024);
+						sprintf(buff, "You are not a member");
+						send(cli->sockfd, buff, sizeof(buff), 0);
+						break;
+					}
+					int i = 0;
+					printf("History:\n");
+					while (closeHistory[i][0])
+					{
+						int c = 0;
+						for (int j = 0; j < strlen(title); j++)
+							if (closeHistory[i][j] != title[j])
+								c++;
+						if (c == 0)
+						{
+							printf("%s\n", closeHistory[i]);
+							send(cli->sockfd, closeHistory[i], sizeof(closeHistory[i]), 0);
+						}
+						i++;
+					}
+				}
+				else {
+					printf("Chat does not exist\n");
+					sprintf(buff, "Chat does not exist");
+					send(cli->sockfd, buff, sizeof(buff), 0);
 				}
 			}
 			break;

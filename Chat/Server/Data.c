@@ -13,6 +13,7 @@ extern char friends[100][100];
 extern char chat_members[100][100];
 extern char chat_names[100][30];
 extern char history[100][100];
+extern char closeHistory[100][100];
 
 int findMemberID(char member[])
 {
@@ -232,6 +233,14 @@ void addToHistory(char* message)
 	strcpy(history[i], message);
 }
 
+void addToCloseHistory(char* message)
+{
+	int i = 0;
+	while (closeHistory[i][0] != '\0')
+		i++;
+	strcpy(closeHistory[i], message);
+}
+
 load()
 {
 	FILE* l_logins = fopen("Data/logins.txt", "r+");
@@ -240,6 +249,7 @@ load()
 	FILE* l_chat_members = fopen("Data/chat_members.txt", "r+");
 	FILE* l_chat_names = fopen("Data/chat_names.txt", "r+");
 	FILE* l_history = fopen("Data/history.txt", "r+");
+	FILE* l_chat_history = fopen("Data/chat_history.txt", "r+");
 
 	for (int i = 0; i < length; i++)
 	{
@@ -254,6 +264,7 @@ load()
 			friends[i][j] = '\0';
 			chat_members[i][j] = '\0';
 			history[i][j] = '\0';
+			closeHistory[i][j] = '\0';
 		}
 	}
 
@@ -309,15 +320,28 @@ load()
 	step = 0;
 	while (!feof(l_history))
 	{
-		fgets(tempStr, 100, l_history);
-		len = (strlen(tempStr) - 1);
-		if (tempStr[len] == '\n')
-			tempStr[len] = '\0';
-		strcpy(history[step], tempStr);
+		fgets(tempStr_long, 100, l_history);
+		len = (strlen(tempStr_long) - 1);
+		if (tempStr_long[len] == '\n')
+			tempStr_long[len] = '\0';
+		strcpy(history[step], tempStr_long);
 		step++;
 	}
 
 	memset(history[step - 1], '\0', 100);
+
+	step = 0;
+	while (!feof(l_chat_history))
+	{
+		fgets(tempStr_long, 100, l_chat_history);
+		len = (strlen(tempStr_long) - 1);
+		if (tempStr_long[len] == '\n')
+			tempStr_long[len] = '\0';
+		strcpy(closeHistory[step], tempStr_long);
+		step++;
+	}
+
+	memset(closeHistory[step - 1], '\0', 100);
 
 	fclose(l_logins);
 	fclose(l_passwords);
@@ -325,6 +349,7 @@ load()
 	fclose(l_chat_members);
 	fclose(l_chat_names);
 	fclose(l_history);
+	fclose(l_chat_history);
 }
 
 save()
@@ -335,6 +360,7 @@ save()
 	FILE* l_chat_members = fopen("Data/chat_members.txt", "r+");
 	FILE* l_chat_names = fopen("Data/chat_names.txt", "r+");
 	FILE* l_history = fopen("Data/history.txt", "r+");
+	FILE* l_chat_history = fopen("Data/chat_history.txt", "r+");
 
 	int step = 0;
 	while (logins[step][0])
@@ -360,10 +386,18 @@ save()
 		step++;
 	}
 
+	step = 0;
+	while (closeHistory[step][0])
+	{
+		fprintf(l_chat_history, "%s\n", closeHistory[step]);
+		step++;
+	}
+
 	fclose(l_logins);
 	fclose(l_passwords);
 	fclose(l_friends);
 	fclose(l_chat_members);
 	fclose(l_chat_names);
 	fclose(l_history);
+	fclose(l_chat_history);
 }
