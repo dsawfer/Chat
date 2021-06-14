@@ -39,15 +39,9 @@ int findLogin(char* name)
 	return -1;
 }
 
-int findFriend(char* name, char* buf)
+int findFriend(char* name, char* buff)
 {
-	char fr_name[30] = { 0 };
 	int n = 0;
-	for (int i = 5; i < strlen(buf); i++)
-	{
-		fr_name[n] = buf[i];
-		n++;
-	}
 	n = findLogin(name);
 	char temp_fr_name[30] = { 0 };
 	int t = 0;
@@ -60,7 +54,7 @@ int findFriend(char* name, char* buf)
 		}
 		else
 		{
-			if (strcmp(temp_fr_name, fr_name) == 0)
+			if (strcmp(temp_fr_name, buff) == 0)
 				return 0; //this user is alredy your friend
 			else
 			{
@@ -71,27 +65,57 @@ int findFriend(char* name, char* buf)
 		}
 	}
 	int f = 0;
-	f = findLogin(fr_name);
-	strcpy(temp_fr_name, fr_name);
+	f = findLogin(buff);
 	if (f > -1)
-	{
 		return 1;      //you can add friend
-	}
 	return -1;         //user doesn't exist
 }
 
-void addFriend(char* buf, char* userName)
+void addFriend(char* buff, char* userName)
 {
-	char fr_name[30] = { 0 };
 	int n = 0;
-	for (int i = 5; i < strlen(buf); i++)
-	{
-		fr_name[n] = buf[i];
-		n++;
-	}
 	n = findLogin(userName);
-	strcat(friends[n], fr_name);
+	strcat(friends[n], buff);
 	strcat(friends[n], " ");
+}
+
+void delFriend(char* buff, char* userName)
+{
+	int n = 0;
+	n = findLogin(userName);
+	char temp_fr_name[30] = { 0 };
+	int t = 0;
+	for (int i = 0; i < width_fr; i++)
+	{
+		if (friends[n][i] != ' ')
+		{
+			temp_fr_name[t] = friends[n][i];
+			t++;
+		}
+		else
+		{
+			if (strcmp(temp_fr_name, buff) == 0)
+			{
+				i--;
+				int k = 0;
+				while (friends[n][i] != ' ')
+				{
+					i--;
+					k++;
+				}
+				i++;
+				for (i; i < width_fr - k; i++)
+					friends[n][i] = friends[n][i + k];
+				i = width_fr;
+			}
+			else
+			{
+				for (t = 0; t < width; t++)
+					temp_fr_name[t] = '\0';
+				t = 0;
+			}
+		}
+	}
 }
 
 load()
