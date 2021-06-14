@@ -18,7 +18,11 @@ load();		//char** logs, char** pass
 int findLogin(char* name);
 void addUser(name, pass);
 int findPassword(res, pass);
-int findFriend(name, buf);
-void addFriend(buf, userName);
-void delFriend(buf, userName);
+int findFriend(char* name, char* buff);
+void addFriend(char* buff, char* userName);
+void delFriend(char* buff, char* userName);
+process_command(char* buff, char* title, char chat_members[][30]);
+int check_members(char name[], char chat_members_args[][30]);
+int findChat(char title[]);
+void addChat(char title[], char chat_members_args[][30]);
 save();
