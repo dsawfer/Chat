@@ -19,5 +19,6 @@ int findLogin(char* name);
 void addUser(name, pass);
 int findPassword(res, pass);
 int findFriend(name, buf);
-void addFriend(friendName, userName);
+void addFriend(buf, userName);
+void delFriend(buf, userName);
 save();
