@@ -79,6 +79,28 @@ void send_message(char* message, int uid) {
 	pthread_mutex_unlock(&mutex);
 }
 
+getCommand(char* buff, char* command)
+{
+	int step = 0;
+	while (buff[step] != ' ' && buff[step] != '\0') {
+		command[step] = buff[step];
+		step++;
+	}
+	if (buff[step] == '\0') return;
+	else {
+		int point = 0;
+		while (step >= 0) {
+			while (buff[point]) {
+				buff[point] = buff[point + 1];
+				point++;
+			}
+			step--;
+			point = 0;
+		}
+	}
+}
+
+
 void* ClientStart(void* client_socket)
 {
 	char name[30];
@@ -86,6 +108,7 @@ void* ClientStart(void* client_socket)
 	client_t* cli = (client_t*)client_socket;
 	char buff[1024];
 	char message[1024];
+	char command[20];
 	int leave_flag = 0, res = 0;
 
 	int ret = recv(cli->sockfd, name, sizeof(name), 0);		// (1) get login
@@ -137,63 +160,99 @@ void* ClientStart(void* client_socket)
 		sprintf(buff, "%s has joined", cli->name);
 		send_message(buff, cli->uid);
 	}
-	//
+
 	memset(buff, '\0', 1024);
+	memset(command, '\0', 20);
 
 	while (1) {
 
 		if (leave_flag) {
 			break;
 		}
-
 		ret = recv(cli->sockfd, buff, sizeof(buff), 0);
 		if (ret > 0) {
-			if (strlen(buff) > 0) {
-				if (strcmp(buff, "/exit") == 0) {
+			if (buff[0] == '/') {
+				getCommand(buff, command);
+				printf("|%s| - |%s|\n", buff, command);
+				if (strcmp(command, "/exit") == 0) {
 					sprintf(buff, "%s has left", cli->name);
 					printf("~%s\n", buff);
 					send_message(buff, cli->uid);
 					leave_flag = 1;
 				}
-				else if (buff[0] == '/' && buff[1] == 'a' && buff[2] == 'd' && buff[3] == 'd') {
-					int f = findFriend(cli->name, buff);
-					if (f == 0)                            //f=0 -> friend already exist
+				else if (strcmp(command, "/add") == 0) {
+					printf("a tyt vse ok\n");
+					int f = 0;
+					f = findFriend(cli->name, buff);
+					printf("f=%d\n", f);
+					switch (f)
 					{
+					case 0:
 						printf("~%s wants to add a friend who has already been added\n", cli->name);
 						sprintf(buff, "This user is already your friend");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-					}
-					else if (f == -1)					   //f=-1 -> user doesn't exist
-					{
+						break;
+					case -1:
 						printf("~%s wants to add a non-existent user\n", cli->name);
 						sprintf(buff, "This user does not exist");
 						send(cli->sockfd, buff, sizeof(buff), 0);
-					}
-					else                                   //f=1 -> you can add friend, user exist
-					{
+						break;
+					case 1:
 						addFriend(buff, cli->name);
 						sprintf(buff, "%s added a new friend", cli->name);
 						printf("~%s\n", buff);
 						send_message(buff, cli->uid);
+						memset(buff, '\0', 1024);
 						sprintf(buff, "New friend added");
 						send(cli->sockfd, buff, sizeof(buff), 0);
+						break;
+					default:
+						break;
 					}
 				}
-				else if (strcmp(buff, "/close_server") == 0) {
+				else if (strcmp(command, "/delete_friend") == 0) {
+					int f = findFriend(cli->name, buff);
+					switch (f)
+					{
+					case 1:
+						printf("~%s wants to delete a user who is not his friend\n", cli->name);
+						sprintf(buff, "This user is not your friend, you cannot delete him");
+						send(cli->sockfd, buff, sizeof(buff), 0);
+						break;
+					case -1:
+						printf("~%s wants to delete a non-existent user\n", cli->name);
+						sprintf(buff, "This user does not exist, you cannot delete him");
+						send(cli->sockfd, buff, sizeof(buff), 0);
+						break;
+					case 0:
+						delFriend(buff, cli->name);
+						sprintf(buff, "%s deleted friend", cli->name);
+						printf("~%s\n", buff);
+						send_message(buff, cli->uid);
+						memset(buff, '\0', 1024);
+						sprintf(buff, "You deleted a friend");
+						send(cli->sockfd, buff, sizeof(buff), 0);
+						break;
+					default:
+						break;
+					}
+				}
+				else if (strcmp(command, "/close_server") == 0) {
 					sprintf(buff, "Server was stoped by %s", cli->name);
 					send_message(buff, cli->uid);
 					server_flag = 1;
 				}
-				else {
-					sprintf(message, "%s: %s", cli->name, buff);
-					send_message(message, cli->uid);
-					//str_trim_lf(buff, strlen(buff));
-					printf(">%s\n", message);
-					//addHistory();
-				}
+			}
+			else {
+				sprintf(message, "%s: %s", cli->name, buff);
+				send_message(message, cli->uid);
+				//str_trim_lf(buff, strlen(buff));
+				printf(">%s\n", message);
+				//addHistory();
 			}
 		}
 		memset(buff, '\0', 1024);
+		memset(command, '\0', 20);
 	}
 	closesocket(cli->sockfd);
 	removeClient(cli->uid);
@@ -204,6 +263,7 @@ void* ClientStart(void* client_socket)
 		pthread_detach(pthread_self());
 	return NULL;
 }
+
 
 int CreateServer()
 {
