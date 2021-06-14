@@ -79,7 +79,7 @@ int findChat(char title[])
 		if (strcmp(title, chat_names[step]) == 0) return step;
 		step++;
 	}
-	return 0;
+	return -1;
 }
 
 void addChat(char title[], char chat_members_args[][30], char* creator)

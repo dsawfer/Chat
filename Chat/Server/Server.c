@@ -305,7 +305,7 @@ void* ClientStart(void* client_socket)
 				printf("\n");
 				memset(buff, '\0', 1024);
 				if (check_members(cli->name, chat_members_args) == 0) {
-					if (findChat(title) == 0) {
+					if (findChat(title) == -1) {
 						addChat(title, chat_members_args, cli->name);
 						printf("Chat was created\n");
 						sprintf(buff, "Chat was created");
@@ -366,7 +366,7 @@ void* ClientStart(void* client_socket)
 				process_message(buff, title, chat_message);
 				//printf("%s / %s\n", title, chat_message);
 				int chat = findChat(title);
-				if (chat) {
+				if (chat>=0) {
 					int membersID[10] = { 0 };
 					if (findMembers(chat, membersID, cli->name)) {
 						printf("Member error\n");
