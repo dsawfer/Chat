@@ -133,6 +133,7 @@ int getCommand(char* buff, char* command)
 	if (strcmp(command, "/send") == 0) return 6;
 	if (strcmp(command, "/history") == 0) return 7;
 	if (strcmp(command, "/history_of_chat") == 0) return 8;
+	if (strcmp(command, "/friend_list") == 0) return 9;
 	return 0;
 }
 
@@ -399,6 +400,7 @@ void* ClientStart(void* client_socket)
 					send(cli->sockfd, history[i], sizeof(history[i]), 0);
 					i++;
 				}
+				break;
 			}
 			case 8:
 			{
@@ -439,6 +441,14 @@ void* ClientStart(void* client_socket)
 				}
 			}
 			break;
+			case 9:
+			{
+				char list[100];
+				memset(list, '\0', 100);
+				getListOfFriends(cli->name, list);
+				send(cli->sockfd, list, sizeof(list), 0);
+			}
+				break;
 			}
 		}
 		else {

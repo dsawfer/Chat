@@ -15,6 +15,12 @@ extern char chat_names[100][30];
 extern char history[100][100];
 extern char closeHistory[100][100];
 
+getListOfFriends(char* name, char list[])
+{
+	int n = findLogin(name);
+	strcpy(list, friends[n]);
+}
+
 int findMemberID(char member[])
 {
 	for (int i = 0; i < 50; i++) {
@@ -173,7 +179,15 @@ void addFriend(char* buff, char* userName)
 {
 	int n = 0;
 	n = findLogin(userName);
+	if (friends[n][0] == '0') friends[n][0] = '\0';
 	strcat(friends[n], buff);
+	strcat(friends[n], " ");
+
+	printf("%s\n", friends[n]);
+
+	n = findLogin(buff);
+	if (friends[n][0] == '0') friends[n][0] = '\0';
+	strcat(friends[n], userName);
 	strcat(friends[n], " ");
 
 	printf("%s\n", friends[n]);
