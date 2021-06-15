@@ -1,0 +1,12 @@
+Steve: hello
+Steve: how are u today, Roger?
+Roger: i am fine
+mew: hello guys
+mew: what are you douing
+mew: nothing?
+Roger: nothing intresting
+mew: okey, then i close server
+Roger: okey
+Steve: okey, bye
+Roger: goodbye
+mew: bye
