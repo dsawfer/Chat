@@ -471,7 +471,7 @@ void* ClientStart(void* client_socket)
 	return NULL;
 }
 
-int CreateServer()
+int CreateServer(int port)
 {
 	SOCKET server;
 	SOCKET client;
@@ -485,7 +485,7 @@ int CreateServer()
 	}
 	localaddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	localaddr.sin_family = AF_INET;
-	localaddr.sin_port = htons(11000);		//port number is for example, must be more than 1024 (5510)
+	localaddr.sin_port = htons(port);		//port number is for example, must be more than 1024 (5510)
 	if (bind(server, (struct sockaddr*)&localaddr, sizeof(localaddr)) == SOCKET_ERROR) //bind - çàïóñêàåò ñåðâåð (ñîêåò)
 	{
 		printf("Can't start server\n");
@@ -531,8 +531,9 @@ int CreateServer()
 	return 0;
 }
 
-int main()
+int main(int argc, const char* argv)
 {
+	int port = atoi(argv[1]);
 	WSADATA wsd;
 	if (WSAStartup(MAKEWORD(1, 1), &wsd) == 0)
 	{
@@ -542,5 +543,5 @@ int main()
 	{
 		return 1;
 	}
-	return CreateServer();
+	return CreateServer(port);
 }

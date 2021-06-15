@@ -1,4 +1,4 @@
-// client.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
+// client.cpp : пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ "main". пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 //
 
 //#include "pch.h"
@@ -103,7 +103,7 @@ void* SendNewMassages(void* client_socket)
 	flag = 1;
 }
 
-void CreateClient()
+void CreateClient(const char* ip, int port)
 {
 	SOCKET client;
 	client = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -114,8 +114,8 @@ void CreateClient()
 	}
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
-	server.sin_port = htons(11000);							//the same as in server
-	server.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");	//special look-up address
+	server.sin_port = htons(port);							//the same as in server
+	server.sin_addr.S_un.S_addr = inet_addr(ip);	//special look-up address
 	if (connect(client, (struct sockaddr*)&server, sizeof(server)) == SOCKET_ERROR)
 	{
 		printf("Can't connect to server\n");
@@ -152,8 +152,10 @@ void CreateClient()
 	//return;
 }
 
-int main()
+int main(int argc, const char** argv)
 {
+	int port = atoi(argv[2]);
+	const char* ip = argv[1];
 	WSADATA wsd;
 	if (WSAStartup(MAKEWORD(1, 1), &wsd) != 0)
 	{
@@ -161,7 +163,7 @@ int main()
 		return 1;
 	}
 
-	CreateClient();
+	CreateClient(ip, port);
 
 	printf("Session is closed\n");
 	Sleep(1000);
