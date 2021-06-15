@@ -1,0 +1,32 @@
+*   [33m7e6b339[m[33m ([m[1;36mHEAD -> [m[1;32mdevelop[m[33m)[m Merge branch 'develop'
+[31m|[m[32m\[m  
+[31m|[m *   [33m51d36a1[m[33m ([m[1;31morigin/develop[m[33m, [m[1;32mstyle[m[33m)[m merge develop and friends
+[31m|[m [33m|[m[34m\[m  
+[31m|[m [33m|[m * [33mcca2324[m[33m ([m[1;31morigin/friends[m[33m)[m add delFriend to ServerParams.h
+[31m|[m [33m|[m * [33m39478d8[m add delFriend to Data.c
+[31m|[m [33m|[m * [33m19e4016[m fix Server.c
+[31m|[m [33m|[m * [33m08664a9[m small changes in client.c
+[31m|[m [33m|[m * [33m04135ff[m add command /delete_friend and getCommand
+[31m|[m [33m|[m * [33m41af15a[m add delFriend to Data.c, fix findFriend and addFriend
+[31m|[m [33m|[m * [33ma9fc311[m add delFriend to ServerParams.h
+[31m|[m [33m|[m * [33m8021cd3[m small changes in Server.c, removed something unnecessary
+[31m|[m [33m|[m * [33mab407d6[m small changes in Data.c
+* [33m|[m [34m|[m [33md10a02c[m create close chats system
+[33m|[m[33m/[m [34m/[m  
+* [34m/[m [33m3ddfaf3[m starting develop of close chats
+[34m|[m[34m/[m  
+* [33m373795b[m[33m ([m[1;32mfriends[m[33m)[m file friends.txt is empty
+* [33m1267f46[m add findFriend and addFriend
+* [33m7723e0b[m add function /add
+* [33m67ab9d1[m add findFriend and addFriend, fix load and save
+* [33mb12e74c[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m added database, added functions that work with the database, added login system
+* [33m83b4b9c[m fix gitignore
+*   [33m34eeb72[m Merge branch 'main' of https://github.com/dsawfer/Chat
+[35m|[m[36m\[m  
+[35m|[m * [33ma092b22[m Delete Pthreads.h directory
+[35m|[m * [33me0dd5de[m Add files via upload
+* [36m|[m [33mfc3703f[m fix output, fix structure, completion of building the foundation
+* [36m|[m [33mb6c3edc[m Rebuilding the core of the project, still a draft
+[36m|[m[36m/[m  
+* [33m2f76b6c[m add server, client and pthreads lib
+* [33mdf247a6[m Initial commit

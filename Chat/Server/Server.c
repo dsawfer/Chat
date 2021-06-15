@@ -133,6 +133,7 @@ int getCommand(char* buff, char* command)
 	if (strcmp(command, "/send") == 0) return 6;
 	if (strcmp(command, "/history") == 0) return 7;
 	if (strcmp(command, "/history_of_chat") == 0) return 8;
+	if (strcmp(command, "/friend_list") == 0) return 9;
 	return 0;
 }
 
@@ -399,6 +400,7 @@ void* ClientStart(void* client_socket)
 					send(cli->sockfd, history[i], sizeof(history[i]), 0);
 					i++;
 				}
+				break;
 			}
 			case 8:
 			{
@@ -439,6 +441,14 @@ void* ClientStart(void* client_socket)
 				}
 			}
 			break;
+			case 9:
+			{
+				char list[100];
+				memset(list, '\0', 100);
+				getListOfFriends(cli->name, list);
+				send(cli->sockfd, list, sizeof(list), 0);
+			}
+				break;
 			}
 		}
 		else {
@@ -461,7 +471,7 @@ void* ClientStart(void* client_socket)
 	return NULL;
 }
 
-int CreateServer()
+int CreateServer(int port)
 {
 	SOCKET server;
 	SOCKET client;
@@ -475,7 +485,7 @@ int CreateServer()
 	}
 	localaddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	localaddr.sin_family = AF_INET;
-	localaddr.sin_port = htons(11000);		//port number is for example, must be more than 1024 (5510)
+	localaddr.sin_port = htons(port);		//port number is for example, must be more than 1024 (5510)
 	if (bind(server, (struct sockaddr*)&localaddr, sizeof(localaddr)) == SOCKET_ERROR) //bind - çàïóñêàåò ñåðâåð (ñîêåò)
 	{
 		printf("Can't start server\n");
@@ -521,8 +531,9 @@ int CreateServer()
 	return 0;
 }
 
-int main()
+int main(int argc, const char* argv)
 {
+	int port = atoi(argv[1]);
 	WSADATA wsd;
 	if (WSAStartup(MAKEWORD(1, 1), &wsd) == 0)
 	{
@@ -532,5 +543,5 @@ int main()
 	{
 		return 1;
 	}
-	return CreateServer();
+	return CreateServer(port);
 }
